@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lottie/lottie.dart';
-import 'package:project_envi/providers.dart';
+import 'package:project_envi/services/providers.dart';
 import 'package:project_envi/screens/final_screen.dart';
 
 class SelectTicket extends ConsumerWidget {

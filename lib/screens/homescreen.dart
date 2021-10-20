@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:project_envi/colors.dart';
-import 'package:project_envi/providers.dart';
+import 'package:project_envi/screens/shop_page.dart';
+import 'package:project_envi/services/providers.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:project_envi/screens/dashboard_screen.dart';
 import 'package:project_envi/screens/leaderboard_screen.dart';
@@ -98,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Dashboard(),
                     ),
                     buildPageContainer(
-                      title: "Verify Ticket",
+                      title: "Redeem Ticket",
                       child: SelectTicket(),
                     ),
                     buildPageContainer(
@@ -116,13 +118,63 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children:  [
-                    Icon(
-                      Icons.drag_handle_rounded,
-                      color: textC,
-                      size: _size.width/10,
+                    InkWell(
+                      onTap: (()async{
+                        await context.read(authProvider).signOut();
+                      }),
+                      child: Icon(
+                        Icons.drag_handle_rounded,
+                        color: textC,
+                        size: _size.width/10,
+                      ),
                     ),
-                    CircleAvatar(
-                      radius: _size.width/18,
+                    InkWell(
+                      onTap: (() async {
+                        await Navigator.push(
+                            context,
+                            PageRouteBuilder(
+                                transitionDuration:
+                                Duration(milliseconds: 250),
+                                reverseTransitionDuration:
+                                Duration(milliseconds: 150),
+                                transitionsBuilder:
+                                    (BuildContext context,
+                                    Animation<double>
+                                    animation,
+                                    Animation<double>
+                                    secAnimation,
+                                    Widget child) {
+                                  return FadeTransition(
+                                    opacity: animation,
+                                    child: child,
+                                  );
+                                },
+                                pageBuilder: (BuildContext
+                                context,
+                                    Animation<double> animation,
+                                    Animation<double> secAnimation) {
+                                  return const ShopPage();
+                                }));
+                      }),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+
+                          CircleAvatar(
+                            // child: SvgPicture.network('https://avatars.dicebear.com/api/male/john.svg?background=%230000ff'),
+                            radius: _size.width/18,
+                          ),
+                          Text(
+                            context.read(usernameProvider).state![0],
+                            style: TextStyle(
+                              color: Color.lerp(Colors.amber, Colors.black,0.15),
+                              // fontFamily: 'Cinzel',
+                              fontSize: 25,
+                              fontWeight: FontWeight.bold,
+                          ),
+                          )
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -185,7 +237,7 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                GestureDetector(
+                InkWell(
                   onTap: () {
                     final p = context.read(indexProvider);
                     p.state = index;
@@ -204,7 +256,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 1000),
-                  curve: Curves.decelerate,
+                  curve: Curves.elasticInOut,
+                  // curve: Curves.decelerate,
                   height: focus?_size.height*0.01:0,
                   width: double.infinity,
                   margin: const EdgeInsets.symmetric(horizontal: 5),

@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lottie/lottie.dart';
-import 'package:project_envi/providers.dart';
+import 'package:project_envi/services/providers.dart';
 import 'package:project_envi/colors.dart';
 import 'package:shimmer_animation/shimmer_animation.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -18,7 +18,7 @@ class Dashboard extends ConsumerWidget {
       width: double.infinity,
       height: double.infinity,
       child: StreamBuilder(
-        stream: watch(leaderCollection).doc(watch(docIdProvider)).snapshots(),
+        stream: watch(leaderCollection).doc(watch(userIdProvider).state).snapshots(),
           builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
           if(!snapshot.hasData) {
           return Container();
@@ -46,40 +46,42 @@ class Dashboard extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Spacer(
-                            flex: 2,
+                            flex: 3,
                           ),
                           const Expanded(
-                            flex: 6,
+                            flex: 13,
                             child: Text(
-                              'Total\nCoins',
+                              'Total\neCoins',
                               style: TextStyle(
                                 fontSize: 25,
                               ),
                               textAlign: TextAlign.center,
                             ),
                           ),
-                          const Spacer(
-                            flex: 1,
-                          ),
                           Expanded(
-                            flex: 8,
+                            flex: 10,
                             child: Text(
-                              userP['coins'].toStringAsPrecision(4),
+                              userP['coins'].toStringAsPrecision(2),
+                              textAlign: TextAlign.end,
                               style: const TextStyle(
-                                  fontSize: 35,
+                                  fontSize: 40,
                                   fontWeight: FontWeight.bold
                               ),
                             ),
                           ),
+                          const Spacer(
+                            flex: 1,
+                          ),
                           const Expanded(
                             flex: 2,
                             child: FaIcon(
-                              FontAwesomeIcons.leaf,
-                              color: Colors.lightGreen,
+                              FontAwesomeIcons.diceD20,
+                              size: 30,
+                              // color: Colors.lightGreen,
                             ),
                           ),
                           const Spacer(
-                            flex: 2,
+                            flex: 5,
                           ),
                         ],
                       ),
@@ -117,8 +119,9 @@ class Dashboard extends ConsumerWidget {
                   flex: 8,
                   child: Lottie.asset(
                     'assets/lottie/23968-save-environment.json',
-                    repeat: watch(animNotifier),
+                    // repeat: watch(animNotifier),
                     reverse: true,
+                    repeat:true,
                   ),
                 ),
                 const Divider(

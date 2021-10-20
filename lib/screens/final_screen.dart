@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:project_envi/providers.dart';
+import 'package:project_envi/services/final_clipper.dart';
+import 'package:project_envi/services/providers.dart';
 import 'package:http/http.dart' as http;
 import 'package:lottie/lottie.dart';
 import 'package:image_picker/image_picker.dart';
@@ -98,7 +100,7 @@ class _FinalScreenState extends State<FinalScreen> {
 
       if(startPoint==null || endPoint == null){
         print("ibnfs");
-        alertDialog(context,'Invalid Ticket');
+        alertDialog(context,'Invalid Ticket',true, 'assets/lottie/error.json');
         return false;
       }else{
         origin  = await getGeocode(startPoint);
@@ -116,7 +118,7 @@ class _FinalScreenState extends State<FinalScreen> {
   Future<String> getGeocode(String location) async {
     final response = await http.get(
       Uri.parse(
-          "https://geocode.search.hereapi.com/v1/geocode?apiKey=${ENTER API KEY HERE}&q=$location+Pune"),
+          "https://geocode.search.hereapi.com/v1/geocode?apiKey=API_KEY&q=$location+Pune"),
     );
     final body = json.decode(response.body);
     pos = body["items"][0]["position"];
@@ -125,7 +127,7 @@ class _FinalScreenState extends State<FinalScreen> {
 
   Future<Map<String,dynamic>> getDistance() async {
     final response = await http.get(Uri.parse(
-      "https://router.hereapi.com/v8/routes?&apiKey=${ENTER API KEY HERE}&transportMode=bus&origin=$origin&destination=$destination&return=summary",
+      "https://router.hereapi.com/v8/routes?&apiKey=API_KEY&transportMode=bus&origin=$origin&destination=$destination&return=summary",
     ));
     final body = json.decode(response.body);
     duration = body["routes"][0]["sections"][0]["summary"]["duration"];
@@ -142,6 +144,7 @@ class _FinalScreenState extends State<FinalScreen> {
   Widget build(BuildContext context) {
     Size _size = MediaQuery.of(context).size;
     return Scaffold(
+      backgroundColor: Colors.amber,
       body: Center(
         child: FutureBuilder(
           future: _data,
@@ -158,9 +161,11 @@ class _FinalScreenState extends State<FinalScreen> {
               final String originStr = capitalize(startPoint.replaceAll("+", " ")),
                   destinationStr = capitalize(endPoint.replaceAll("+", " "));
               final Duration dur = Duration(seconds: duration?? 0);
+              print(_size.width*0.85);
+              print(_size.height*28/34);
               return Consumer(
                   builder: (context, watch, child) {
-                  final instProvider = watch(firebaseInst);
+                  final instProvider = watch(firestoreInst);
                   final leaderProvider = watch(leaderCollection);
                   final userP = watch(userProvider);
                   final coinsEarned = (dur.inMinutes)*distance/100;
@@ -173,18 +178,20 @@ class _FinalScreenState extends State<FinalScreen> {
                             'id': uniqueId,
                           });
                       leaderProvider
-                          .doc(watch(docIdProvider))
+                          .doc(watch(userIdProvider).state)
                           .update({
                         "score": userP.state['score'] + distance,
                         "coins": userP.state['coins'] + coinsEarned,
                       });
                       print("assad");
+                      alertDialog(context, ' ',false, 'assets/lottie/accepted.json');
 
                     }
                     else{
                       print("dupli");
                       isDuplicate = true;
-                      alertDialog(context,'Ticket already Redeemed');
+                      alertDialog(context, 'Ticket already Redeemed', true,
+                          'assets/lottie/error.json');
                       // return const SizedBox(width: 100,height: 100,);
                     }
 
@@ -195,213 +202,191 @@ class _FinalScreenState extends State<FinalScreen> {
                       const Spacer(
                         flex: 1,
                       ),
-                      Expanded(
-                        flex:28,
-                        child: Container(
-                          width: _size.width*0.85,
-                          height: _size.height*0.9,
-                          decoration: BoxDecoration(
-                            color: Colors.amber,
-                            borderRadius:BorderRadius.all(
-                                Radius.circular(_size.width/10)
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                  offset: const Offset(0,6),
-                                  color: Colors.grey.withOpacity(0.4),
-                                  spreadRadius: 2,
-                                  blurRadius: 10
-                              )
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
+                      Padding(
+                      padding: EdgeInsets.symmetric(vertical: 15.0,horizontal: _size.width*0.1),
+                        child: CustomPaint(
+                          painter: BoxShadowTicketPainter(),
+                          child: ClipPath(
+                            clipper: TicketClipper(), //my CustomClipper
+                              child: Container(
+                                color: Colors.white,
+                                width: _size.height*0.9*3/7,
+                                height: _size.height*0.83,
+                                child: CustomPaint(
+                                  painter: DottedLineHorizontal(
+                                      color: Colors.green
+                                    ),
+                                  child:Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      flex: 11,
+                                      child: img!=null ? Image.file(
+                                        File(img!.path),
+                                      ) : Container(),
+                                    ),
 
-                              Expanded(
-                                flex: 10,
-                                child: Container(
-                                  width: _size.width*0.85,
-                                  margin: EdgeInsets.only(top: _size.width*0.05),
-                                  decoration: BoxDecoration(
-                                    color: primaryC,
-                                    borderRadius: BorderRadius.all(Radius.circular(_size.width/15),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Spacer(
-                                        flex: 2,
-                                      ),
-                                      const Expanded(
-                                        flex: 9,
-                                        child: Text(
-                                          'Coins\nEarned',
-                                          style: TextStyle(
-                                            fontSize: 25,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ),
-                                      const Spacer(
-                                        flex: 1,
-                                      ),
-                                      Expanded(
-                                        flex:6,
-                                        child: Text(
-                                          coinsEarned.toStringAsPrecision(3),
-                                          style: const TextStyle(
-                                              fontSize: 35,
-                                              fontWeight: FontWeight.bold
-                                          ),
-                                        ),
-                                      ),
-                                      const Expanded(
-                                        flex: 2,
-                                        child: FaIcon(
-                                          FontAwesomeIcons.leaf,
-                                          color: Colors.lightGreen,
-                                        ),
-                                      ),
-                                      const Spacer(
-                                        flex: 2,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                flex:55,
-                                child: Container(
-                                  width: _size.width*0.85,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius:BorderRadius.all(
-                                        Radius.circular(_size.width/10)
-                                    ),
-                                  ),
-                                  child: (originStr == null || destinationStr == null)?
-                                  const Text(
-                                    "Error! Ticket\nNot Recognised",
-                                    textAlign: TextAlign.start,
-                                    style: TextStyle(
-                                      fontSize: 30,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  )
-                                      :Column(
-                                    children: [
-                                      Container(
-                                        width:_size.width*0.85,
+                                    Expanded(
+                                      flex:9,
+                                      child: Container(
+                                        width: _size.width*0.85,
                                         decoration: BoxDecoration(
-                                          color: Colors.white,
+                                          // color: Colors.white,
                                           borderRadius:BorderRadius.all(
                                               Radius.circular(_size.width/10)
                                           ),
                                         ),
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(_size.width/10),
-                                          child: img!=null ? Image.file(
-                                            File(img!.path),
-                                            width: _size.width*0.85,
-                                          ) : Container(),
-                                        ),
-                                      ),
-
-                                      const Spacer(
-                                        flex: 2,
-                                      ),
-                                      const Expanded(
-                                        flex: 3,
-                                        child: Text(
-                                          'Origin:',
-                                          textAlign: TextAlign.start,
-                                          style: TextStyle(
-                                            fontSize: 22,
-                                          ),
-                                        ),
-                                      ),
-                                      Expanded(
-                                        flex: 5,
-                                        child: Text(
-                                          originStr,
-                                          textAlign: TextAlign.start,
-                                          style: const TextStyle(
-                                            fontSize: 30,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                      const Expanded(
-                                        flex: 3,
-                                        child: Text(
-                                          'Destination:',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            fontSize: 22,
-                                          ),
-                                        ),
-                                      ),
-                                      Expanded(
-                                        flex: 5,
-                                        child: Text(
-                                          destinationStr,
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                            fontSize: 30,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-
-                                      const Divider(
-                                        thickness: 3,
-                                        indent: 30,
-                                        endIndent: 30,
-                                      ),
-                                      Expanded(
-                                        flex: 8,
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 30),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                            children: [
-                                              Expanded(
-                                                flex: 1,
-                                                child: Text(
-                                                  'Distance\n${distance.toStringAsPrecision(3)} km',
-                                                  textAlign: TextAlign.center,
-                                                  style: const TextStyle(
-                                                    fontSize: 24,
-                                                  ),
+                                        child: Column(
+                                          children: [
+                                            const Expanded(
+                                              flex: 3,
+                                              child: Text(
+                                                'Origin:',
+                                                textAlign: TextAlign.start,
+                                                style: TextStyle(
+                                                  fontSize: 22,
                                                 ),
                                               ),
-                                              Expanded(
-                                                flex: 1,
-                                                child: Text(
-                                                  'Time\n${dur.inMinutes} min',
-                                                  textAlign: TextAlign.center,
-                                                  style: const TextStyle(
-                                                    fontSize: 24,
-                                                  ),
+                                            ),
+                                            Expanded(
+                                              flex: 5,
+                                              child: Text(
+                                                originStr,
+                                                textAlign: TextAlign.start,
+                                                style: const TextStyle(
+                                                  fontSize: 30,
+                                                  fontWeight: FontWeight.bold,
                                                 ),
                                               ),
-                                            ],
-                                          ),
+                                            ),
+                                            const Expanded(
+                                              flex: 3,
+                                              child: Text(
+                                                'Destination:',
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  fontSize: 22,
+                                                ),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              flex: 5,
+                                              child: Text(
+                                                destinationStr,
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(
+                                                  fontSize: 30,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+
+                                            const Divider(
+                                              thickness: 2,
+                                              indent: 30,
+                                              endIndent: 30,
+                                            ),
+                                            Expanded(
+                                              flex: 8,
+                                              child: Padding(
+                                                padding: const EdgeInsets.symmetric(horizontal: 30),
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                  children: [
+                                                    Expanded(
+                                                      flex: 1,
+                                                      child: Text(
+                                                        'Distance\n${distance.toStringAsPrecision(3)} km',
+                                                        textAlign: TextAlign.center,
+                                                        style: const TextStyle(
+                                                          fontSize: 24,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    Expanded(
+                                                      flex: 1,
+                                                      child: Text(
+                                                        'Time\n${dur.inMinutes} min',
+                                                        textAlign: TextAlign.center,
+                                                        style: const TextStyle(
+                                                          fontSize: 24,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+
+                                            const Spacer(
+                                              flex: 1,
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                    Expanded(
+                                      flex: 4,
+                                      child: Container(
+                                        width: _size.width*0.85,
+                                        margin: EdgeInsets.fromLTRB(_size.width*0.03,0,_size.width*0.03,_size.width*0.03),
+                                        decoration: BoxDecoration(
+                                          color: Colors.amber,
+                                          borderRadius: BorderRadius.all(Radius.circular(_size.width/11),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            const Spacer(
+                                              flex: 2,
+                                            ),
+                                            const Expanded(
+                                              flex: 9,
+                                              child: Text(
+                                                'Coins\nEarned',
+                                                style: TextStyle(
+                                                  fontSize: 25,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ),
+                                            const Spacer(
+                                              flex: 1,
+                                            ),
+                                            Expanded(
+                                              flex:6,
+                                              child: Text(
+                                                coinsEarned.toStringAsPrecision(3),
+                                                style: const TextStyle(
+                                                    fontSize: 35,
+                                                    fontWeight: FontWeight.bold
+                                                ),
+                                              ),
+                                            ),
+                                            const Expanded(
+                                              flex: 2,
+                                              child: FaIcon(
+                                                FontAwesomeIcons.diceD20,
+                                              ),
+                                            ),
+                                            const Spacer(
+                                              flex: 2,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ],
+                                ),
+                              ), // my widgets inside
+                            ),
                           ),
                         ),
-                      ),
                       const Spacer(flex: 1,),
                       Expanded(
-                        flex: 3,
+                        flex: 4,
                         child: GestureDetector(
                           onTap: ((){
                             final index = context.read(indexProvider);
@@ -409,11 +394,12 @@ class _FinalScreenState extends State<FinalScreen> {
                             Navigator.pop(context);
                           }),
                           child: Container(
-                            width: _size.width*0.85,
+                            width: _size.width*0.8,
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius:BorderRadius.all(
-                                  Radius.circular(_size.width/10)
+                              borderRadius:BorderRadius.only(
+                                  topLeft: Radius.circular(_size.width/10),
+                                  topRight: Radius.circular(_size.width/10)
                               ),
                               boxShadow: [
                                 BoxShadow(
@@ -437,7 +423,6 @@ class _FinalScreenState extends State<FinalScreen> {
                           ),
                         ),
                       ),
-                      const Spacer(flex: 1,),
                     ],
                   );
                 }
@@ -449,44 +434,62 @@ class _FinalScreenState extends State<FinalScreen> {
     );
   }
 
-  void alertDialog(BuildContext context,String msg) => showDialog(
-    barrierColor: Colors.white,
+  late Timer _timer;
+
+  void alertDialog(BuildContext context,String msg,bool ismsg, String asset) => showDialog(
+    barrierColor: ismsg?Colors.white:Colors.white.withOpacity(0.85),
     context: context,
-    barrierDismissible: false,
-    builder: (_) => AlertDialog(
-      title: const Text(
-        'Error!',
-        style: TextStyle(
-          fontSize: 25,
+    barrierDismissible: !ismsg,
+    builder: (_) {
+      _timer = Timer(Duration(seconds: ismsg?100:3), () {
+      Navigator.of(context).pop();
+      });
+      return AlertDialog(
+        // title: const Text(
+        //   'Error!',
+        //   style: TextStyle(
+        //     fontSize: 25,
+        //   ),
+        //   textAlign: TextAlign.center,
+        // ),
+
+        title: ismsg ? Text(
+          msg,
+          style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold
+          ),
+          textAlign: TextAlign.center,
+        ) : null,
+        content: Lottie.asset(
+          asset,
+          repeat: false,
+          width: 100,
         ),
-        textAlign: TextAlign.center,
-      ),
-      content: Text(
-        msg,
-        style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold
-        ),
-        textAlign: TextAlign.center,
-      ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(25))),
-      actions: <Widget>[
-        TextButton(
-          child: const Center(child: Text(
-            'Continue',
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 25,
-            ),
-            textAlign: TextAlign.center,
-          ),),
-          onPressed: () {
-            Navigator.pop(context);
-            Navigator.pop(context);
-          },
-        ),
-      ],
-    ),
-  );
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(const Radius.circular(25))),
+        actions: ismsg ? <Widget>[
+          TextButton(
+            child: const Center(child: Text(
+              'Continue',
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 25,
+              ),
+              textAlign: TextAlign.center,
+            ),),
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+          ),
+        ] : null,
+      );
+    }
+  ).then((val){
+    if (_timer.isActive) {
+      _timer.cancel();
+    }
+  });
 }
 
