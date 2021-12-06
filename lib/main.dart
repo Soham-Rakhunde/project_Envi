@@ -10,6 +10,7 @@ import 'package:project_envi/services/providers.dart';
 
 
 void main() async {
+  const sa = "sdsadf";
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   runApp(

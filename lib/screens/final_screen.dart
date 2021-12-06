@@ -34,6 +34,7 @@ class FinalScreen extends StatefulWidget {
 
 
 class _FinalScreenState extends State<FinalScreen> {
+  final ImagePicker ds = ImagePicker();
   final ImagePicker _picker = ImagePicker();
   var startPoint;
   var endPoint;
